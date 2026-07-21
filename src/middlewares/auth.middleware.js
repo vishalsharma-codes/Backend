@@ -3,10 +3,10 @@ import {asyncHandler} from "../utils/asyncHandler.js"
 import jwt from "jsonwebtoken"
 import {User} from "../models/user.model.js"
 
-export const verifyJWT = asynchandler(async(req, _, next) =>{
+export const verifyJWT = asyncHandler(async(req, _, next) =>{
   
   try{  
-    const token = req.cookie?.accessToken || req.header("Authorization")?.replace("Bearer ","")
+    const token = req.cookies?.accessToken || req.header("Authorization")?.replace("Bearer ","")
 
     if(!token){
         throw new ApiError(401 ,"Unauthorized error ")
