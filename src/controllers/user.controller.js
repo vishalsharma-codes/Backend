@@ -3,6 +3,7 @@ import {ApiError} from "../utils/ApiError.js"
 import {User} from "../models/user.model.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
+import mongoose from "mongoose"
 import jwt from "jsonwebtoken"
 
 
@@ -144,8 +145,8 @@ const logoutUser = asyncHandler(async(req, res) =>{
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set:{
-                refreshToken : undefined
+            $unset:{
+                refreshToken : 1
             }
         },{
             new:true
@@ -166,15 +167,15 @@ const logoutUser = asyncHandler(async(req, res) =>{
 
 const refreshAccessToken = asyncHandler(async(req,res) =>{
 
-    const incomingRefreshToken = req.cookie.refreshToken || req.body.refreshToken
+    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
 
     if(!incomingRefreshToken){
         throw new ApiError(401, "unauthorized request")
     }
 
-    try{const decodedTooken = jwt.verfiy(
+    try{const decodedToken = jwt.verify(
         incomingRefreshToken,
-        process.env.REFRESH_ACCESS_TOKEN
+        process.env.REFRESH_TOKEN_SECRET
     )
 
     const user = await User.findById(decodedToken?._id)
@@ -399,14 +400,14 @@ const getWatchHistory = asyncHandler(async(req,res) =>{
         {
             $lookup:{
                 from:"videos",
-                localFeild:"watchHistory",
-                foreignFeild:"_id",
+                localField:"watchHistory",
+                foreignField:"_id",
                 as:"watchHistory",
                 pipeline:[{
                     $lookup:{
                         from:"users",
-                        localFeild:"owner",
-                        foreignFeild:"_id",
+                        localField:"owner",
+                        foreignField:"_id",
                         as:"owner",
                         pipeline:[{
                             $project:{
