@@ -1,3 +1,4 @@
+console.log("INDEX FILE:", import.meta.url);
 import dns from 'dns';
 dns.setServers(['8.8.8.8', '8.8.4.4']);
 

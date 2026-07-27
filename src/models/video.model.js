@@ -32,7 +32,7 @@ const videoSchema = new Schema(
             ref:"User"
         }
     },{
-        timeStamps:true
+        timestamps:true
     }
 )
 
