@@ -173,57 +173,98 @@ const publishAVideo = asyncHandler(async (req, res) => {
 })
 
 const getVideoById = asyncHandler(async (req, res) => {
-    const { videoId } = req.params
-    //TODO: get video by id
+    const { videoId } = req.params;
 
-    if(!isValidObjectId(videoId)){
-        throw new ApiError(
-            400, "Invalid videoId"
-        )
+    if (!isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid videoId");
     }
 
     const video = await Video.aggregate([
-    {
-        $match: {
-            _id: new mongoose.Types.ObjectId(videoId)
-        }
-    },
-    {
-        $lookup: {
-            from: "users",
-            localField: "owner",
-            foreignField: "_id",
-            as: "owner",
-            pipeline: [
-                {
-                    $project: {
-                        username: 1,
-                        fullName: 1,
-                        avatar: 1
+        {
+            $match: {
+                _id: new mongoose.Types.ObjectId(videoId)
+            }
+        },
+
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner",
+                pipeline: [
+                    {
+                        $project: {
+                            username: 1,
+                            fullName: 1,
+                            avatar: 1
+                        }
                     }
+                ]
+            }
+        },
+
+        {
+            $addFields: {
+                owner: {
+                    $first: "$owner"
                 }
-            ]
-        }
-    },
-    {   
-        $addFields: {
-            owner: {
-                $first: "$owner"
+            }
+        },
+
+        // Get all likes of this video
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "video",
+                as: "likes"
+            }
+        },
+
+        // Add like count
+        {
+            $addFields: {
+                likesCount: {
+                    $size: "$likes"
+                }
+            }
+        },
+
+        // Check if current user liked this video
+        {
+            $addFields: {
+                isLiked: {
+                    $in: [
+                        req.user._id,
+                        "$likes.likedBy"
+                    ]
+                }
+            }
+        },
+
+        // Remove likes array from response
+        {
+            $project: {
+                likes: 0
             }
         }
-    }
-])
+    ]);
+
     if (!video.length) {
         throw new ApiError(404, "Video not found");
     }
 
     return res
-    .status(200)
-    .json(
-        new ApiResponse(
-        200,video[0],"Video found successfully"
-    ))
-})
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                video[0],
+                "Video found successfully"
+            )
+        );
+});
 
 const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
